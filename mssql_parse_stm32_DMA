@@ -2184,6 +2184,29 @@ set @xmlData='<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 
 
 
+IF OBJECT_ID('tempdb..#TmpTable') IS NOT NULL DROP TABLE #TmpTable
+-- generate  "ADC1"	 and (2,0) data columns and store to temporary table
+;     WITH XMLNAMESPACES ('http://mcd.rou.st.com/modules.php?name=mcu' AS ns1)
+     SELECT
+     fName = '"' + C.C.value('@Name[1]', 'varchar(50)') + '"'
+     , dmaNchM = '('+  right( C.C.value('../../../../@Name[1]', 'varchar(20)') ,1 )  + ',' + right(C.C.value('../../@Name[1]', 'varchar(20)'),1) + ')'
+     into #TmpTable
+     FROM @xmlData.nodes ('/ns1:IP/ns1:ModeLogicOperator/ns1:Mode/ns1:ModeLogicOperator/ns1:Mode/ns1:ModeLogicOperator/ns1:Mode') as C(C)
+     order by C.C.value('@Name[1]', 'varchar(50)')
+
+
+-- join text "MEMTOMEM" : [(2,0),(2,1),(2,2),(2,7),(2,6),(2,3),(2,4),(2,5)], 
+select distinct 
+fName + ' : [' + replace((
+(	select dmaNchM as 'data()' 
+	from (select dmaNchM from #TmpTable t where t.fName = Nlist.fName) src  
+	for xml path('') )    
+			   ),' ',',')  + '],'
+from  #TmpTable Nlist
+
+/*
+--show not joined
+-- select * from #TmpTable
 
 -- generate line "ADC1"	: [(2,0),(2,4)],
 ;     WITH XMLNAMESPACES ('http://mcd.rou.st.com/modules.php?name=mcu' AS ns1)
@@ -2193,7 +2216,6 @@ set @xmlData='<?xml version="1.0" encoding="UTF-8" standalone="no"?>
      order by C.C.value('@Name[1]', 'varchar(50)')
 
 
-/*
 -- this query return data table
 ;     WITH XMLNAMESPACES ('http://mcd.rou.st.com/modules.php?name=mcu' AS ns1)
      SELECT
